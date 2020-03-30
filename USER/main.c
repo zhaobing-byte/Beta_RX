@@ -39,6 +39,7 @@
 #include "led.h"
 #include "system.h"
 uint8_t packet[32];
+uint16_t rcData[16];
 uint32_t cyc_cnt_test;
 int main(void)
 {
@@ -51,7 +52,10 @@ int main(void)
 //	cyc_cnt_test = micros();
 	while (1)
 	{
-		frSkySpiDataReceived(packet);
+		if((frSkySpiDataReceived(packet) & RX_SPI_RECEIVED_DATA) == 0x02)
+		{
+			frSkyXSetRcData(rcData,packet);
+		}
 //		if(micros() - cyc_cnt_test > 1700)
 //		{
 //			SPI_NSS_HIGH;

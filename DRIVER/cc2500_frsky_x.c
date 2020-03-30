@@ -492,9 +492,9 @@ rx_spi_received_e frSkyXHandlePacket(uint8_t * const packet, uint8_t * const pro
 		case STATE_TELEMETRY:
 			if((micros()-packetTimerUs) >= receiveDelayUS + telemetryDelayUs)
 			{
-				cc2500Strobe(CC2500_SIDLE);
-				cc2500SetPower(6);
-				cc2500Strobe(CC2500_SFRX);
+//				cc2500Strobe(CC2500_SIDLE);
+//				cc2500SetPower(6);
+//				cc2500Strobe(CC2500_SFRX);
 				delay_us(30);
 				//cc2500Strobe(CC2500_SIDLE);
 				//cc2500WriteFifo(frame,frame[0] + 1);
@@ -503,10 +503,10 @@ rx_spi_received_e frSkyXHandlePacket(uint8_t * const packet, uint8_t * const pro
 			break;
 //#endif
 		case STATE_RESUME:
-			if((micros() - packetTimerUs) > receiveDelayUS + 2500)
+			if((micros() - packetTimerUs) > receiveDelayUS + 3150)
 			{
 				packetTimerUs = micros();
-				receiveDelayUs = 5300;
+				receiveDelayUs = 5560;
 				frameReceived = false; // again set for receive
 				nextChannel(channelsToSkip);
 				cc2500Strobe(CC2500_SRX);

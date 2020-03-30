@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include "rx.h"
 
-#define SYNC_DELAY_MAX 9000
+#define SYNC_DELAY_MAX 8887
 #define MAX_MISSING_PKT 100
 enum {
     STATE_INIT = 0,
@@ -28,6 +28,7 @@ rx_spi_received_e frSkySpiDataReceived(uint8_t *packet);
 void frSkySpiSetRcData(uint16_t *rcData, const uint8_t *payload);
 bool frSkySpiInit(void);
 bool isValidPacket(const uint8_t *packet);
+void frSkyXSetRcData(uint16_t *rcData, const uint8_t *packet);
 #endif
 
 
