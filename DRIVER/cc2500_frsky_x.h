@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include "rx.h"
 
-#define SYNC_DELAY_MAX 8887
+#define SYNC_DELAY_MAX 9000
 #define MAX_MISSING_PKT 100
 enum {
     STATE_INIT = 0,

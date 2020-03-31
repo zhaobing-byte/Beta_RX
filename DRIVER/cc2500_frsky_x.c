@@ -13,6 +13,7 @@ static uint8_t bindIdx;
 static uint32_t start_time;
 
 typedef rx_spi_received_e handlePacketFn(uint8_t * const packet, uint8_t * const protocolState);
+static inline int32_t cmpTimeUs(uint32_t a, uint32_t b) { return (int32_t)(a - b);}
 typedef void setRcDataFn(uint16_t *rcData, const uint8_t *payload);
 
 static handlePacketFn *handlePacket;
@@ -23,10 +24,11 @@ int32_t timeoutUs;
 
 static uint32_t packetTimerUs;
 static bool frameReceived;
-static uint32_t receiveDelayUS;
+//static uint32_t receiveDelayUS;
+static int32_t receiveDelayUs;
 static uint8_t packetLength;
 static uint16_t telemetryDelayUs;
-static uint32_t receiveDelayUs;
+
 rxCc2500SpiConfig_t rxCc2500SpiConfigMutable = {
 		true,                           //autoBind
 		{43,198},                           //bindTxId
@@ -409,10 +411,10 @@ rx_spi_received_e frSkyXHandlePacket(uint8_t * const packet, uint8_t * const pro
 			cc2500Strobe(CC2500_SRX);
 			break;
 		case STATE_UPDATE:
-			packetTimerUs = micros();      //获取当前时间
-			*protocolState = STATE_DATA;
-			frameReceived = false;
-			receiveDelayUS = 5300;
+			 packetTimerUs = micros();
+            *protocolState = STATE_DATA;
+			frameReceived = false; // again set for receive
+			receiveDelayUs = 5300;
 			if(/*rxSpiCheckBindRequested(false)*/ false) 
 			{       //检测绑定请求
 				packetTimerUs = 0;
@@ -430,10 +432,10 @@ rx_spi_received_e frSkyXHandlePacket(uint8_t * const packet, uint8_t * const pro
 					cc2500ReadFifo(packet,packetLength);
 					if(isValidPacket(packet))
 					{
-						   //如果包是可用的。。。。
+						 //如果包是可用的。。。。
 						 missingPackets = 0;
 						 timeoutUs = 1;
-						 receiveDelayUS = 0;
+						 receiveDelayUs = 0;
 						 //led_on
 						 if(skipChannels)
 						 {
@@ -456,16 +458,7 @@ rx_spi_received_e frSkyXHandlePacket(uint8_t * const packet, uint8_t * const pro
 							 telemetryReceived = true;
 							 skipChannels = false;
 						 }
-						 if(telemetryReceived)
-						 {
-							if((micros()-packetTimerUs) > receiveDelayUs) 
-							{ 	
-								// if received or not received in this time sent telemetry data
-								*protocolState = STATE_TELEMETRY;
-								//buildTelemetryFrame(packet);
-							}
-						 }
-						 packetTimerUs = micros();
+						 packetTimerUs = micros();      //如果接收到的包是有效的，记录下当前时间点
 						 frameReceived = true;
 					}
 					if(!frameReceived)
@@ -475,11 +468,21 @@ rx_spi_received_e frSkyXHandlePacket(uint8_t * const packet, uint8_t * const pro
 					}
 				}
 			}
-			if((micros()- packetTimerUs) > timeoutUs * SYNC_DELAY_MAX)
+			if(telemetryReceived)
+			{
+				if(cmpTimeUs(micros(),packetTimerUs) > receiveDelayUs)      //如果收到的数据包是有效的，直接到STATE_TELEMETRY,如果不是有效的等待5300mm才会进入
+				{ 	
+					// if received or not received in this time sent telemetry data
+					*protocolState = STATE_TELEMETRY;
+					//*protocolState = STATE_RESUME;
+					//buildTelemetryFrame(packet);
+				}
+			}
+			if(cmpTimeUs(micros(),packetTimerUs) > timeoutUs * SYNC_DELAY_MAX)
 			{
 				//----LED FLASH -----
 				//----RSSI SET-------
-				nextChannel(channelsToSkip);
+				nextChannel(1);
 				cc2500Strobe(CC2500_SRX);
 				*protocolState = STATE_UPDATE;
 			}
@@ -490,23 +493,23 @@ rx_spi_received_e frSkyXHandlePacket(uint8_t * const packet, uint8_t * const pro
 			break;
 //#ifdef USE_RX_FRSKY_SPI_TELEMETY
 		case STATE_TELEMETRY:
-			if((micros()-packetTimerUs) >= receiveDelayUS + telemetryDelayUs)
+			if(cmpTimeUs(micros(),packetTimerUs) >= receiveDelayUs + telemetryDelayUs)      //53mm   +    400us
 			{
-//				cc2500Strobe(CC2500_SIDLE);
-//				cc2500SetPower(6);
-//				cc2500Strobe(CC2500_SFRX);
+				cc2500Strobe(CC2500_SIDLE);
+				cc2500SetPower(6);
+				cc2500Strobe(CC2500_SFRX);
 				delay_us(30);
-				//cc2500Strobe(CC2500_SIDLE);
+				cc2500Strobe(CC2500_SIDLE);
 				//cc2500WriteFifo(frame,frame[0] + 1);
 				*protocolState = STATE_RESUME;
 			}
 			break;
 //#endif
 		case STATE_RESUME:
-			if((micros() - packetTimerUs) > receiveDelayUS + 3150)
+			if(cmpTimeUs(micros(),packetTimerUs) > receiveDelayUs + 3700)
 			{
 				packetTimerUs = micros();
-				receiveDelayUs = 5560;
+				receiveDelayUs = 5300;
 				frameReceived = false; // again set for receive
 				nextChannel(channelsToSkip);
 				cc2500Strobe(CC2500_SRX);
@@ -521,8 +524,7 @@ rx_spi_received_e frSkyXHandlePacket(uint8_t * const packet, uint8_t * const pro
 				missingPackets++;
 				*protocolState = STATE_DATA;
 			}
-			break;
-			
+			break;	
 	}//end switch
 	return ret;
 }
