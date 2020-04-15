@@ -1,6 +1,7 @@
 #include "cc2500_frsky_x.h"
 #include "rx_cc2500.h"
 #include "system.h"
+#include "led.h"
 
 static uint8_t protocolState;
 static uint8_t calData[255][3];
@@ -197,10 +198,10 @@ rx_spi_received_e frSkySpiDataReceived(uint8_t *packet)
 				protocolState = STATE_BIND;
 			}
 			break;
-		case STATE_BIND:                       //检测是否按下绑定按键或者接收机是否已经绑定
+		case STATE_BIND:                               //检测是否按下绑定按键或者接收机是否已经绑定
 			if(!rxCc2500SpiConfigMutable.autoBind)     //先模拟绑定通过  false
 			{
-//				rxSpiLedOn();
+				LedToggle(LED_PORT,Red_LED_PIN);
 				initTuneRx();
 				protocolState = STATE_BIND_TUNING;
 			}
@@ -415,7 +416,7 @@ rx_spi_received_e frSkyXHandlePacket(uint8_t * const packet, uint8_t * const pro
             *protocolState = STATE_DATA;
 			frameReceived = false; // again set for receive
 			receiveDelayUs = 5300;
-			if(/*rxSpiCheckBindRequested(false)*/ false) 
+			if(rxSpiCheckBindRequested()) 
 			{       //检测绑定请求
 				packetTimerUs = 0;
 				timeoutUs = 50;
@@ -436,7 +437,8 @@ rx_spi_received_e frSkyXHandlePacket(uint8_t * const packet, uint8_t * const pro
 						 missingPackets = 0;
 						 timeoutUs = 1;
 						 receiveDelayUs = 0;
-						 //led_on
+						 //Blue_LED_ON;
+						 LedToggle(LED_PORT,Blue_LED_PIN);
 						 if(skipChannels)
 						 {
 							 channelsToSkip = packet[5] << 2;
@@ -483,7 +485,10 @@ rx_spi_received_e frSkyXHandlePacket(uint8_t * const packet, uint8_t * const pro
 				//----LED FLASH -----
 				//----RSSI SET-------
 				nextChannel(1);
+				LedToggle(LED_PORT,Red_LED_PIN);
+				Blue_LED_OFF;
 				cc2500Strobe(CC2500_SRX);
+				
 				*protocolState = STATE_UPDATE;
 			}
 			if(frameReceived)

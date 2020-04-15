@@ -42,5 +42,6 @@ typedef enum {
 
 bool rxSpiSetProtocol(rx_spi_protocol_e protocol);
 bool rxSpiGetExtiState(void);
+bool rxSpiCheckBindRequested(void);
 
 #endif

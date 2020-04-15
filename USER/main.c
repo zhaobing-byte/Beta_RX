@@ -51,11 +51,15 @@ int main(void)
 	led_Init();
 //	cyc_cnt_test = micros();
 	while (1)
-	{
+	{	
 		if((frSkySpiDataReceived(packet) & RX_SPI_RECEIVED_DATA) == 0x02)
 		{
 			frSkyXSetRcData(rcData,packet);
 		}
+//	    LED_2_ON;
+//		delay_ms(100);
+//		LED_2_OFF;
+//		delay_ms(100);
 //		if(micros() - cyc_cnt_test > 1700)
 //		{
 //			SPI_NSS_HIGH;

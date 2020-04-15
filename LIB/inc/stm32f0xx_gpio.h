@@ -167,6 +167,7 @@ typedef struct
 #define GPIO_Pin_0                 ((uint16_t)0x0001)  /*!< Pin 0 selected    */
 #define GPIO_Pin_1                 ((uint16_t)0x0002)  /*!< Pin 1 selected    */
 #define GPIO_Pin_2                 ((uint16_t)0x0004)  /*!< Pin 2 selected    */
+
 #define GPIO_Pin_3                 ((uint16_t)0x0008)  /*!< Pin 3 selected    */
 #define GPIO_Pin_4                 ((uint16_t)0x0010)  /*!< Pin 4 selected    */
 #define GPIO_Pin_5                 ((uint16_t)0x0020)  /*!< Pin 5 selected    */

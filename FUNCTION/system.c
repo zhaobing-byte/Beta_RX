@@ -52,16 +52,16 @@ void SysTick_Handler(void)
 	sysTickUptime++;                    //1ms Systick Uptime
 	sysTickValStamp = SysTick->VAL;     //1ms SysTick Stamp Value
 	sysTickPending = 0;
-	static uint8_t x=0;
-	if(x == 0)
-	{
-		LED_ON;
-		x = 1;
-	}
-	else
-	{
-		LED_OFF;
-		x = 0;
-	}
+//	static uint8_t x=0;
+//	if(x == 0)
+//	{
+//		LED_ON;
+//		x = 1;
+//	}
+//	else
+//	{
+//		LED_OFF;
+//		x = 0;
+//	}
 }
 
