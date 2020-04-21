@@ -2,6 +2,10 @@
 #include "rx_cc2500.h"
 #include "system.h"
 #include "led.h"
+#include "function.h"
+#include "flash.h"
+
+extern uint16_t rcData[];
 
 static uint8_t protocolState;
 static uint8_t calData[255][3];
@@ -31,15 +35,15 @@ static uint8_t packetLength;
 static uint16_t telemetryDelayUs;
 
 rxCc2500SpiConfig_t rxCc2500SpiConfigMutable = {
-		true,                           //autoBind
-		{43,198},                           //bindTxId
+		true,                            //autoBind
+		{43,198},                        //bindTxId
 		0,                               //bindOffset
-//		{0,0,0,0,0,0,0,0,0,0,            //***************************
-//         0,0,0,0,0,0,0,0,0,0,            
-//		 0,0,0,0,0,0,0,0,0,0,             //bindHopData
-//		 0,0,0,0,0,0,0,0,0,0,
-//		 0,0,0,0,0,0,0,0,0,0,},          //***************************
-		{1,201,166,131,96,61,26,226,191,156,121,86,51,16,216,181,146,111,76,41,6,206,171,136,101,66,31,231,196,161,126,93,56,21,223,186,151,116,81,48,11,211,178,141,106,71,36,0,0,0},
+		{0,0,0,0,0,0,0,0,0,0,            //***************************
+         0,0,0,0,0,0,0,0,0,0,            
+		 0,0,0,0,0,0,0,0,0,0,             //bindHopData
+		 0,0,0,0,0,0,0,0,0,0,
+		 0,0,0,0,0,0,0,0,0,0,},          //***************************
+		//{1,201,166,131,96,61,26,226,191,156,121,86,51,16,216,181,146,111,76,41,6,206,171,136,101,66,31,231,196,161,126,93,56,21,223,186,151,116,81,48,11,211,178,141,106,71,36,0,0,0},
 		0,                               //rxNum
 		0,                               //a1Source
 		0,                               //chipDetectEnabled
@@ -84,6 +88,7 @@ const uint16_t crcTable[] = {
         0xf78f,0xe606,0xd49d,0xc514,0xb1ab,0xa022,0x92b9,0x8330,
         0x7bc7,0x6a4e,0x58d5,0x495c,0x3de3,0x2c6a,0x1ef1,0x0f78
 };
+
 
 static void initialise()
 {
@@ -198,10 +203,9 @@ rx_spi_received_e frSkySpiDataReceived(uint8_t *packet)
 				protocolState = STATE_BIND;
 			}
 			break;
-		case STATE_BIND:                               //检测是否按下绑定按键或者接收机是否已经绑定
-			if(!rxCc2500SpiConfigMutable.autoBind)     //先模拟绑定通过  false
+		case STATE_BIND:                               
+			if(rxCc2500SpiConfigMutable.autoBind)     //检查是否已经绑定过
 			{
-				LedToggle(LED_PORT,Red_LED_PIN);
 				initTuneRx();
 				protocolState = STATE_BIND_TUNING;
 			}
@@ -211,6 +215,8 @@ rx_spi_received_e frSkySpiDataReceived(uint8_t *packet)
 			}
 			break;
 		case STATE_BIND_TUNING:
+			//LedToggle(LED_PORT,Red_LED_PIN);
+			Blue_LED_ON;
 			if(tuneRx(packet))
 			{
 				initGetBind();
@@ -228,19 +234,21 @@ rx_spi_received_e frSkySpiDataReceived(uint8_t *packet)
 			if(getBind2(packet))
 			{
 				cc2500Strobe(CC2500_SIDLE);
+				rxCc2500SpiConfigMutable.autoBind = false;
 				protocolState = STATE_BIND_COMPLETE;
 			}
 			break;
 		case STATE_BIND_COMPLETE:
 			if(!rxCc2500SpiConfigMutable.autoBind) 
 			{
-				//writeEEPROM();
+				writeEEPROM();
 			}
 			else
 			{
 				uint8_t ctr = 80;
 				while(ctr--)
 				{
+					LedToggle(LED_PORT,Blue_LED_PIN);
 					delay_ms(50);
 				}
 			}
@@ -416,12 +424,14 @@ rx_spi_received_e frSkyXHandlePacket(uint8_t * const packet, uint8_t * const pro
             *protocolState = STATE_DATA;
 			frameReceived = false; // again set for receive
 			receiveDelayUs = 5300;
-			if(rxSpiCheckBindRequested()) 
-			{       //检测绑定请求
+			if(!rxSpiCheckBindRequested()) 
+			{       
+				//检测绑定请求
 				packetTimerUs = 0;
 				timeoutUs = 50;
 				missingPackets = 0;
 				*protocolState = STATE_INIT;            //检测到绑定请求，接收机进入初始化
+				rxCc2500SpiConfigMutable.autoBind = true;
 				break;
 			}
 		case STATE_DATA:
@@ -485,8 +495,7 @@ rx_spi_received_e frSkyXHandlePacket(uint8_t * const packet, uint8_t * const pro
 				//----LED FLASH -----
 				//----RSSI SET-------
 				nextChannel(1);
-				LedToggle(LED_PORT,Red_LED_PIN);
-				Blue_LED_OFF;
+				LedToggle(LED_PORT,Blue_LED_PIN);
 				cc2500Strobe(CC2500_SRX);
 				
 				*protocolState = STATE_UPDATE;
@@ -553,7 +562,8 @@ void frSkyXSetRcData(uint16_t *rcData, const uint8_t *packet)
     for (unsigned i = 0; i < 8; i++) {
         const bool channelIsShifted = c[i] & 0x800;
         const uint16_t channelValue = c[i] & 0x7FF;
-        rcData[channelIsShifted ? i + 8 : i] = ((channelValue - 64) * 2 + 860 * 3) / 3;
+      //  rcData[channelIsShifted ? i + 8 : i] = ((channelValue - 64) * 2 + 860 * 3) / 3;
+		rcData[channelIsShifted ? i + 8 : i] = channelValue;
     }
 }
 

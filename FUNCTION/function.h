@@ -15,4 +15,6 @@ union ChipID{
 
 void Get_ChipID(union ChipID *chipID);
 uint16_t GetUniqueID(void);
+void writeEEPROM(void);
+void readEEPROM(void);
 #endif

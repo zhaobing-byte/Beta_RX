@@ -38,6 +38,8 @@
 #include "rx.h"
 #include "led.h"
 #include "system.h"
+#include "function.h"
+#include "sbus.h"
 uint8_t packet[32];
 uint16_t rcData[16];
 uint32_t cyc_cnt_test;
@@ -49,24 +51,15 @@ int main(void)
 	rxSpiSetProtocol(RX_SPI_FRSKY_X);
 	frSkySpiInit();
 	led_Init();
-//	cyc_cnt_test = micros();
+	sbus_init();
+	readEEPROM();
 	while (1)
 	{	
 		if((frSkySpiDataReceived(packet) & RX_SPI_RECEIVED_DATA) == 0x02)
 		{
 			frSkyXSetRcData(rcData,packet);
+			MakeSbusPackage(rcData);
 		}
-//	    LED_2_ON;
-//		delay_ms(100);
-//		LED_2_OFF;
-//		delay_ms(100);
-//		if(micros() - cyc_cnt_test > 1700)
-//		{
-//			SPI_NSS_HIGH;
-//			delay_us(50);
-//			SPI_NSS_LOW;
-//			cyc_cnt_test = micros();
-//		}
 	}
 }
 

@@ -1,6 +1,9 @@
 #include "sbus.h"
-
+#include "string.h"
 #define RX_BUFF_SIZE 64							//SPEK_FRAME_SIZE 16  
+
+uint8_t SbusDataTx[25];
+
 uint8_t rx_buffer[RX_BUFF_SIZE];    //spekFrame[SPEK_FRAME_SIZE]
 uint8_t rx_start = 0;
 uint8_t rx_end = 0;
@@ -47,19 +50,26 @@ void sbus_init(void)
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	
 	GPIO_InitStructure.GPIO_Pin = SERIAL_RX_PIN;
+	
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2; 
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;    //复用推挽输出
+   // GPIO_Init(GPIOA, &GPIO_InitStructure);//初始化GPIOA.9
+	
     GPIO_Init(SERIAL_RX_PORT, &GPIO_InitStructure); 
-    GPIO_PinAFConfig(SERIAL_RX_PORT, SERIAL_RX_SOURCE , SERIAL_RX_CHANNEL);
+  //  GPIO_PinAFConfig(SERIAL_RX_PORT, SERIAL_RX_SOURCE , SERIAL_RX_CHANNEL);
+	GPIO_PinAFConfig(SERIAL_RX_PORT, GPIO_PinSource2 , SERIAL_RX_CHANNEL);
 	
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
 
     USART_InitTypeDef USART_InitStructure;
 
     USART_InitStructure.USART_BaudRate = SERIAL_BAUDRATE;
-    USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+    USART_InitStructure.USART_WordLength = USART_WordLength_9b;
     USART_InitStructure.USART_StopBits = USART_StopBits_2;
     USART_InitStructure.USART_Parity = USART_Parity_No;
     USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-    USART_InitStructure.USART_Mode = USART_Mode_Rx ;//USART_Mode_Rx | USART_Mode_Tx;
+    USART_InitStructure.USART_Mode = USART_Mode_Tx;
 
     USART_Init(USART1, &USART_InitStructure);
 	
@@ -214,5 +224,41 @@ void sbus_checkrx(void)
 
 			frame_received = 0;    
 		} // end frame received
+	}
+}
+
+
+void MakeSbusPackage(uint16_t *Array)
+{
+	SbusDataTx[0]  = 0x0f;
+	SbusDataTx[1]  =  Array[0]  & 0xff;
+	SbusDataTx[2]  = (Array[1]  << 3 | Array[0]  >> 8  ) & 0xff;
+	SbusDataTx[3]  = (Array[2]  << 6 | Array[1]  >> 5  ) & 0xff;
+	SbusDataTx[4]  = (Array[2]  >> 2 ) & 0xff;
+	SbusDataTx[5]  = (Array[3]  << 1 | Array[2]  >> 10 ) & 0xff;
+	SbusDataTx[6]  = (Array[4]  << 4 | Array[3]  >> 7  ) & 0xff;
+	SbusDataTx[7]  = (Array[5]  << 7 | Array[4]  >> 4  ) & 0xff;
+	SbusDataTx[8]  = (Array[5]  >> 1 ) & 0xff;
+	SbusDataTx[9]  = (Array[6]  << 2 | Array[5]  >> 9  ) & 0xff;
+	SbusDataTx[10] = (Array[7]  << 5 | Array[6]  >> 6  ) & 0xff;
+	SbusDataTx[11] = (Array[7]  >> 3 ) & 0xff;
+	SbusDataTx[12] = (Array[8]  >> 0 ) & 0xff;
+	SbusDataTx[13] = (Array[9] << 3 | Array[8]  >> 8  ) & 0xff;
+	SbusDataTx[14] = (Array[10] << 8 | Array[9] >> 5  ) & 0xff;
+	SbusDataTx[15] = (Array[10] >> 2 ) & 0xff;
+	SbusDataTx[16] = (Array[11] << 1 | Array[10] >> 10 ) & 0xff;
+	SbusDataTx[17] = (Array[12] << 4 | Array[11] >> 7  ) & 0xff;
+	SbusDataTx[18] = (Array[13] << 7 | Array[12] >> 4 ) & 0xff;
+	SbusDataTx[19] = (Array[13] >> 1 ) & 0xff;
+	SbusDataTx[20] = (Array[14] << 2 | Array[13] >> 9 ) & 0xff;
+	SbusDataTx[21] = (Array[15] << 5 | Array[14] >> 6 ) & 0xff;
+	SbusDataTx[22] = (Array[15] >> 3 ) & 0xff;
+	SbusDataTx[23] = 0x00;
+	SbusDataTx[24] = 0x00;   
+		
+	for (uint8_t i=0;i<25;i++)
+	{
+		while(USART_GetFlagStatus(USART1,USART_FLAG_TC) == RESET);
+		USART_SendData(USART1, (uint16_t)SbusDataTx[i]);     
 	}
 }

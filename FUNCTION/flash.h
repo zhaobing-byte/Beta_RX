@@ -4,7 +4,7 @@
 #include "stm32f0xx.h"
 
 #define FLASH_ADDR_STATRT             0x8000000              //flash start address
-#define FLASH_PAGE_SIZE               1024        //page size is 400U (1024byte)
+#define FLASH_PAGE_SIZE               1024                   //page size is 400U (1024byte)
 #define FLASH_PAGE_COUNT              16
 
 #define PAGE_0_START_ADRESS         0x08000000

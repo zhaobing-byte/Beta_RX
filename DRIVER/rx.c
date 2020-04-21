@@ -37,7 +37,7 @@ bool rxSpiCheckBindRequested(void)
 	Read_IO_KEY.GPIO_Mode=GPIO_Mode_IN;
 	Read_IO_KEY.GPIO_PuPd=GPIO_PuPd_UP;
 	GPIO_Init(GPIOB,&Read_IO_KEY);
-	if ((GPIOA->IDR & GPIO_Pin_1) != (uint32_t)Bit_RESET)
+	if ((GPIOB->IDR & GPIO_Pin_7) != (uint32_t)Bit_RESET)
 	{
 		return true;
 	}
